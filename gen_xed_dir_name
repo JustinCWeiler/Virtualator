@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+import os
+from datetime import date
+
+def main():
+    if 'kits' not in os.listdir('xed') or len(os.listdir('xed/kits')) == 0:
+        print(f'xed-install-base-{date.today()}-lin-x86-64')
+        return
+
+    print(os.listdir('xed/kits')[-1])
+
+if __name__ == '__main__':
+    main()

@@ -2,9 +2,9 @@ SPEED = -Og
 CFLAGS_EXTRA = 
 LDFLAGS_EXTRA = 
 
-XED_DIR = xed-install-base-2022-06-26-lin-x86-64
-
 # END OF CONFIGURABLE OPTIONS
+
+XED_DIR = $(shell ./gen_xed_dir_name)
 
 # create list of object files
 OBJS = $(wildcard src/*.c) $(wildcard src/**/*.c)
@@ -22,6 +22,7 @@ vpath %.c src $(wildcard src/*)
 CFLAGS = -Wall -Wextra -Werror -MD $(SPEED) -I$(XED_INC) $(CFLAGS_EXTRA)
 LDFLAGS = $(LDFLAGS_EXTRA)
 
+# phony rules
 all: out/bmve
 
 run: out/bmve
@@ -36,22 +37,25 @@ cleanxed:
 
 cleanall: clean cleanxed
 
-out/bmve: $(OBJS) $(XED_LIB) | out
-	gcc $(LDFLAGS) $^ -o $@
-
+# build xed library
 $(XED_LIB):
 	cd xed; ./mfile.py --no-encoder --limit-strings install
 
-bmve: out/bmve
+# build 
+out/bmve: $(OBJS) $(XED_LIB) | out
+	gcc $(LDFLAGS) $^ -o $@
 
 bin/%.o: %.c | $(XED_LIB) bin
 	gcc $(CFLAGS) -c $< -o $@
-
-%.o: bin/%.o
 
 out:
 	mkdir out
 bin:
 	mkdir bin
+
+bmve: out/bmve
+%.o: bin/%.o
+
+-include $(notdir $(OBJS:.o=.d))
 
 .PHONY: all clean cleanxed cleanall

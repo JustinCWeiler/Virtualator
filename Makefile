@@ -19,7 +19,7 @@ XED_LIB = xed/kits/$(XED_DIR)/lib/libxed-ild.a
 # set vpath to src directory and any direct subdir of src
 vpath %.c src $(wildcard src/*)
 
-CFLAGS = -Wall -Wextra -Werror -MD $(SPEED) -I$(XED_INC) $(CFLAGS_EXTRA)
+CFLAGS = -Wall -Wextra -Werror -MD $(SPEED) -I$(XED_INC) -Iinclude $(CFLAGS_EXTRA)
 LDFLAGS = $(LDFLAGS_EXTRA)
 
 # phony rules

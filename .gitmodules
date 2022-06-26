@@ -1,3 +1,6 @@
 [submodule "xed"]
 	path = xed
 	url = git@github.com:intelxed/xed
+[submodule "mbuild"]
+	path = mbuild
+	url = git@github.com:intelxed/mbuild

@@ -24,10 +24,6 @@ static void handler(int sig, siginfo_t* info, ucontext_t* ctx) {
 	void* addr = (void*)ctx->uc_mcontext.gregs[REG_RIP];
 	greg_t error_code = ctx->uc_mcontext.gregs[REG_ERR];
 
-	// get length of instruction that faulted
-	xed_ild_decode(&xedd, addr, MAXBYTES);
-	uint8_t len = xedd._decoded_length;
-
 	// print info
 	printf("User program faulted trying to ");
 	// instruction fetch
@@ -41,7 +37,9 @@ static void handler(int sig, siginfo_t* info, ucontext_t* ctx) {
 		printf("read from ");
 	printf("%p\n", info->si_addr);
 
-	ctx->uc_mcontext.gregs[REG_RIP] += len;
+	// get length of instruction that faulted
+	xed_ild_decode(&xedd, addr, MAXBYTES);
+	ctx->uc_mcontext.gregs[REG_RIP] += xedd._decoded_length;
 	xedd._decoded_length = 0;
 }
 

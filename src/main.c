@@ -71,7 +71,7 @@ int main(void) {
 	char buf[1024];
 	((void(*)(char*))addr)(buf);
 
-	printf("%s\n", buf);
+	printf("code executed at: %s\n", buf);
 
 	return 0;
 }

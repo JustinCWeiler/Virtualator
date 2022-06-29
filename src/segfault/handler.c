@@ -11,6 +11,9 @@
 
 #define MAXBYTES 15
 
+#define FETCH_FAULT (1<<4)
+#define WRITE_FAULT (1<<1)
+
 static const xed_machine_mode_enum_t mmode = XED_MACHINE_MODE_LONG_64;
 static const xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH_64b;
 
@@ -27,10 +30,10 @@ static void handler(int sig, siginfo_t* info, ucontext_t* ctx) {
 	// print info
 	printf("User program faulted trying to ");
 	// instruction fetch
-	if (error_code & 1 << 4)
+	if (error_code & FETCH_FAULT)
 		printf("execute code at ");
 	// write
-	else if (error_code & 1 << 1)
+	else if (error_code & WRITE_FAULT)
 		printf("write to ");
 	// read
 	else

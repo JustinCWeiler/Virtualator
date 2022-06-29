@@ -14,7 +14,7 @@ OBJS := $(addprefix bin/, $(OBJS))
 
 # xed paths
 XED_INC = xed/kits/$(XED_DIR)/include
-XED_LIB = xed/kits/$(XED_DIR)/lib/libxed-ild.a
+XED_LIB = xed/kits/$(XED_DIR)/lib/libxed.a
 
 # set vpath to src directory and any direct subdir of src
 vpath %.c src $(wildcard src/*)

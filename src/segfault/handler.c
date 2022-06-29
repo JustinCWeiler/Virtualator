@@ -17,18 +17,20 @@
 static const xed_machine_mode_enum_t mmode = XED_MACHINE_MODE_LONG_64;
 static const xed_address_width_enum_t stack_addr_width = XED_ADDRESS_WIDTH_64b;
 
-static xed_decoded_inst_t xedd;
-
 static void handler(int sig, siginfo_t* info, ucontext_t* ctx) {
 	if (sig != SIGSEGV)
 		abort();
+
+	xed_decoded_inst_t xedd;
+	xed_decoded_inst_zero(&xedd);
+	xed_decoded_inst_set_mode(&xedd, mmode, stack_addr_width);
 
 	// get info about exception
 	void* addr = (void*)ctx->uc_mcontext.gregs[REG_RIP];
 	greg_t error_code = ctx->uc_mcontext.gregs[REG_ERR];
 
 	// print info
-	printf("User program faulted trying to ");
+	printf("User program faulted at %p trying to ", addr);
 	// instruction fetch
 	if (error_code & FETCH_FAULT)
 		printf("execute code at ");
@@ -41,16 +43,12 @@ static void handler(int sig, siginfo_t* info, ucontext_t* ctx) {
 	printf("%p\n", info->si_addr);
 
 	// get length of instruction that faulted
-	xed_ild_decode(&xedd, addr, MAXBYTES);
-	ctx->uc_mcontext.gregs[REG_RIP] += xedd._decoded_length;
-	xedd._decoded_length = 0;
+	xed_decode(&xedd, addr, MAXBYTES);
+	ctx->uc_mcontext.gregs[REG_RIP] += xed_decoded_inst_get_length(&xedd);
 }
 
 void setup_handler(void) {
 	xed_tables_init();
-
-	memset(&xedd, 0, sizeof(xedd));
-	xed_decoded_inst_set_mode(&xedd, mmode, stack_addr_width);
 
 	struct sigaction act;
 	sigemptyset(&act.sa_mask);

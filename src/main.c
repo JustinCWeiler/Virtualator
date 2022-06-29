@@ -53,6 +53,7 @@ int main(void) {
 	printf("write test\n");
 	for (int i = 0; i < 16; i++) {
 		mem[i] = i;
+		mem[i] = 0xdeadbeef;
 	}
 
 	printf("executing in mmap space test\n");

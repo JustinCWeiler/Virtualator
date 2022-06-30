@@ -37,7 +37,13 @@ void insert(char* buf, uintptr_t rip, int i, int n) {
 void _end_(void) {}
 
 int main(void) {
-	setup_handler();
+	void* dev_info[][3] = {
+		{(void*)0x1000, (void*)0x2000, NULL},
+		{(void*)0xfe000000, (void*)0xfe100000, NULL}
+	};
+	const size_t n_dev = sizeof(dev_info)/sizeof(dev_info[0]);
+
+	setup_handler(n_dev, dev_info);
 
 	volatile int* mem = mmap((void*)0x20000000, 0x10000000, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
 	if ((int)(uintptr_t)mem == -1) {

@@ -39,7 +39,9 @@ cleanall: clean cleanxed
 
 # build xed library
 $(XED_LIB):
-	cd xed; ./mfile.py --no-encoder --limit-strings install
+	cd xed; ./mfile.py --no-encoder --opt=3 --limit-strings install
+
+xed: $(XED_LIB)
 
 # build 
 out/bmve: $(OBJS) $(XED_LIB) | out

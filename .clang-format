@@ -1,0 +1,18 @@
+---
+Language: Cpp
+BasedOnStyle: Mozilla
+AlignTrailingComments: true
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: true
+ColumnLimit: 120
+IndentWidth: 8
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: true
+TabWidth: 8
+UseTab: ForIndentation
+...

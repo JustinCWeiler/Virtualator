@@ -1,6 +1,10 @@
 # Output program
 bmve
 
+# Build folders
+/build/
+/buildxed/
+
 # Prerequisites
 *.d
 

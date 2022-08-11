@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <xed/xed-interface.h>
 
 #include <errno.h>
 #include <sys/mman.h>

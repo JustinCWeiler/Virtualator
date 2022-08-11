@@ -22,7 +22,5 @@ of the program itself and what address the first instruction is.
 
 ## Dependencies
 
-1. [Intel XED](https://github.com/intelxed/xed)
+1. [Zydis](https://github.com/zyantific/zydis)
    (included as a submodule and linked statically)
-2. [Intel MBUILD](https://github.com/intelxed/mbuild)
-   (also included as a submodule)

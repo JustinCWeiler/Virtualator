@@ -1,6 +1,3 @@
-[submodule "xed"]
-	path = xed
-	url = git@github.com:intelxed/xed
-[submodule "mbuild"]
-	path = mbuild
-	url = git@github.com:intelxed/mbuild
+[submodule "zydis"]
+	path = zydis
+	url = git@github.com:zyantific/zydis

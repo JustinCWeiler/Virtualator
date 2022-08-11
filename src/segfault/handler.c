@@ -1,8 +1,8 @@
+#include <Zydis/Zydis.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <xed/xed-interface.h>
 
 #define __USE_GNU
 #include <signal.h>
@@ -18,8 +18,6 @@
 
 #define MMODE XED_MACHINE_MODE_LONG_64
 #define STACK_ADDR_WIDTH XED_ADDRESS_WIDTH_64b
-
-static const xed_state_t dstate = { .mmode = XED_MACHINE_MODE_LONG_64, .stack_addr_width = XED_ADDRESS_WIDTH_64b };
 
 static const size_t PAGE_SIZE = 4 << 10;
 static const size_t PAGE_ALIGN = ~( PAGE_SIZE - 1 );
@@ -45,23 +43,19 @@ static inline int dev_addr( void* addr, void** bounds ) {
 	return n_dev > 0 && bounds[0] <= addr && addr <= bounds[1];
 }
 
-static inline uint64_t access_val_info( xed_decoded_inst_t* xedd, ucontext_t* ctx, size_t* ret_width ) {
-	// set memory operation width
-	*ret_width = xed_decoded_inst_get_operand_width( xedd );
-
-	unsigned int noperands;
-
-	fprintf( stderr, "ERROR: failed to get memory operation information - quitting now\n" );
-	abort();
-}
-
 static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
+	(void)sig;
+	(void)info;
+	(void)ctx;
+	(void)dev_addr;
+	abort();
+	/*
 	if ( sig != SIGSEGV ) abort(); // should never happen
 
 	if ( !handler_enabled ) {
-		fprintf(
-		  stderr, "Segfault occurred at %p with handler disabled\n", (void*)ctx->uc_mcontext.gregs[REG_RIP] );
-		abort();
+	        fprintf(
+	          stderr, "Segfault occurred at %p with handler disabled\n", (void*)ctx->uc_mcontext.gregs[REG_RIP] );
+	        abort();
 	}
 
 	// get info about exception
@@ -71,32 +65,25 @@ static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
 
 	// use device handler
 	if ( dev_addr( mem_addr, dev_bounds ) ) {
-		// get info about instruction that faulted
-		xed_decoded_inst_t xedd;
-		xed_decoded_inst_zero_set_mode( &xedd, &dstate );
-		xed_decode( &xedd, fault_addr, MAXBYTES );
-		rw_val_t rw = GET_BIT( error_code, WRITE_FAULT );
-		size_t width;
-		uint64_t val = access_val_info( &xedd, ctx, &width );
+	        // get info about instruction that faulted
 
-		for ( size_t i = 0; i < n_dev; i++ ) {
-			if ( dev_addr( mem_addr, dev_info[i] ) ) {
-				( (device_handler_t)dev_info[i][2] )( (uintptr_t)mem_addr, rw, width, val );
-				break;
-			}
-		}
+	        for ( size_t i = 0; i < n_dev; i++ ) {
+	                if ( dev_addr( mem_addr, dev_info[i] ) ) {
+	                        //( (device_handler_t)dev_info[i][2] )( (uintptr_t)mem_addr, rw, width, val );
+	                        break;
+	                }
+	        }
 
-		ctx->uc_mcontext.gregs[REG_RIP] += xed_decoded_inst_get_length( &xedd );
+	        // XXX ctx->uc_mcontext.gregs[REG_RIP] += xed_decoded_inst_get_length( &xedd );
 	}
 	// handle like normal memory
 	else {
-		// TODO
+	        // TODO
 	}
+	*/
 }
 
 void setup_handler( size_t n, void* device_info[][3] ) {
-	xed_tables_init();
-
 	struct sigaction act;
 	sigemptyset( &act.sa_mask );
 	act.sa_sigaction = (void ( * )( int, siginfo_t*, void* ))handler;

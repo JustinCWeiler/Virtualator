@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(virtualator)
+project(virtualator C ASM)
 
 set (SPEED "-Og")
 
 set (SRCS
 	src/main.c
+	src/asm.S
 	src/segfault/handler.c
 )
 
@@ -18,6 +19,11 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 # zydis
 option(ZYDIS_BUILD_TOOLS "" OFF)
 option(ZYDIS_BUILD_EXAMPLES "" OFF)
+option(ZYDIS_FEATURE_ENCODER "" OFF)
+option(ZYDIS_FEATURE_FORMATTER "" OFF)
+option(ZYDIS_FEATURE_AVX512 "" OFF)
+option(ZYDIS_FEATURE_KNC "" OFF)
+option(ZYDIS_FEATURE_SEGMENT "" OFF)
 add_subdirectory("zydis")
 
 # virtualator target

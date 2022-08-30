@@ -1,4 +1,5 @@
 #include <Zydis/Zydis.h>
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,11 +17,13 @@
 
 #define GET_BIT( v, n ) ( ( ( v ) >> ( n ) ) & 1 )
 
-#define MMODE XED_MACHINE_MODE_LONG_64
-#define STACK_ADDR_WIDTH XED_ADDRESS_WIDTH_64b
+#define MMODE ZYDIS_MACHINE_MODE_LONG_64
+#define STACK_ADDR_WIDTH ZYDIS_STACK_WIDTH_64
 
 static const size_t PAGE_SIZE = 4 << 10;
 static const size_t PAGE_ALIGN = ~( PAGE_SIZE - 1 );
+
+static ZydisDecoder dec;
 
 static int handler_enabled = 0;
 
@@ -39,48 +42,91 @@ static void* dev_bounds[2];
 
 typedef void ( *device_handler_t )( uintptr_t addr, rw_val_t rw, size_t width, uint64_t val );
 
-static inline int dev_addr( void* addr, void** bounds ) {
+static int dev_addr( void* addr, void* bounds[] ) {
 	return n_dev > 0 && bounds[0] <= addr && addr <= bounds[1];
 }
 
-static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
-	(void)sig;
-	(void)info;
+typedef struct {
+	struct {
+		uint32_t read : 1;
+		uint32_t write : 1;
+		uint32_t fetch : 1;
+	} rwf;
+	uint32_t width;
+	size_t val;
+	void* dst;
+} fault_type_t;
+
+static void access_fault_info( ZydisDecodedInstruction* inst,
+                               ZydisDecodedOperand* ops,
+                               ucontext_t* ctx,
+                               fault_type_t* ret ) {
 	(void)ctx;
-	(void)dev_addr;
-	abort();
-	/*
+	ret->width = 0;
+	ret->rwf.read = 0;
+	ret->rwf.write = 0;
+	ret->rwf.fetch = 0;
+	for ( ZyanU8 i = 0; i < inst->operand_count; i++ ) {
+		if ( ops[i].type == ZYDIS_OPERAND_TYPE_MEMORY ) {
+			if ( ret->width != 0 ) assert( ret->width == ops[i].size );
+			ret->width = ops[i].size;
+			if ( ops[i].actions == ZYDIS_OPERAND_ACTION_READ ) {
+				ret->rwf.read = 1;
+			}
+			else if ( ops[i].actions == ZYDIS_OPERAND_ACTION_WRITE ) {
+				ret->rwf.write = 1;
+			}
+		}
+		else if ( ops[i].type == ZYDIS_OPERAND_TYPE_REGISTER ) {
+			// TODO
+		}
+		else if ( ops[i].type == ZYDIS_OPERAND_TYPE_IMMEDIATE ) {
+			// TODO
+		}
+	}
+	// TODO
+	ret->val = 0xdeadbeeffeedface;
+}
+
+static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
 	if ( sig != SIGSEGV ) abort(); // should never happen
 
 	if ( !handler_enabled ) {
-	        fprintf(
-	          stderr, "Segfault occurred at %p with handler disabled\n", (void*)ctx->uc_mcontext.gregs[REG_RIP] );
-	        abort();
+		fprintf(
+		  stderr, "Segfault occurred at %p with handler disabled\n", (void*)ctx->uc_mcontext.gregs[REG_RIP] );
+		abort();
 	}
 
 	// get info about exception
 	void* fault_addr = (void*)ctx->uc_mcontext.gregs[REG_RIP];
 	void* mem_addr = info->si_addr;
-	greg_t error_code = ctx->uc_mcontext.gregs[REG_ERR];
 
 	// use device handler
 	if ( dev_addr( mem_addr, dev_bounds ) ) {
-	        // get info about instruction that faulted
+		// get info about instruction that faulted
+		ZydisDecodedInstruction inst;
+		ZydisDecodedOperand ops[ZYDIS_MAX_OPERAND_COUNT];
+		ZydisDecoderDecodeFull(
+		  &dec, fault_addr, ZYDIS_MAX_INSTRUCTION_LENGTH, &inst, ops, ZYDIS_MAX_OPERAND_COUNT, 0 );
 
-	        for ( size_t i = 0; i < n_dev; i++ ) {
-	                if ( dev_addr( mem_addr, dev_info[i] ) ) {
-	                        //( (device_handler_t)dev_info[i][2] )( (uintptr_t)mem_addr, rw, width, val );
-	                        break;
-	                }
-	        }
+		fault_type_t ft;
+		access_fault_info( &inst, ops, ctx, &ft );
 
-	        // XXX ctx->uc_mcontext.gregs[REG_RIP] += xed_decoded_inst_get_length( &xedd );
+		rw_val_t rw = ft.rwf.read ? READ : WRITE;
+
+		for ( size_t i = 0; i < n_dev; i++ ) {
+			if ( dev_addr( mem_addr, dev_info[i] ) ) {
+				( (device_handler_t)dev_info[i][2] )( (uintptr_t)mem_addr, rw, ft.width, ft.val );
+				break;
+			}
+		}
+
+		ctx->uc_mcontext.gregs[REG_RIP] += inst.length;
 	}
 	// handle like normal memory
 	else {
-	        // TODO
+		// TODO
 	}
-	*/
 }
 
 void setup_handler( size_t n, void* device_info[][3] ) {
@@ -119,6 +165,9 @@ void setup_handler( size_t n, void* device_info[][3] ) {
 	// round dev_bounds[0] down and dev_bounds[1] up
 	dev_bounds[0] = (void*)( (uintptr_t)dev_bounds[0] & PAGE_ALIGN );
 	dev_bounds[1] = (void*)( ( (uintptr_t)dev_bounds[1] + PAGE_SIZE - 1 ) & PAGE_ALIGN );
+
+	// initialize zydis decoder
+	ZydisDecoderInit( &dec, MMODE, STACK_ADDR_WIDTH );
 
 	handler_enabled = 1;
 }

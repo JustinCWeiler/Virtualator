@@ -9,9 +9,11 @@
 
 #define NBYTES 15
 
-extern void _memcpy( void* dst, void* src, size_t n );
+extern void _memcpy( uintptr_t dst, uintptr_t src, size_t n );
+extern void _add( uintptr_t dst, size_t num );
+extern void push_pop_test( uintptr_t rsp );
 
-void handler( void* addr, rw_val_t rw, size_t width, uint64_t val ) {
+void dev_handler( void* addr, rw_val_t rw, size_t width, uint64_t val ) {
 	if ( rw == READ ) {
 		printf( "program tried to read from %p with width %lu\n", addr, width );
 	}
@@ -21,7 +23,7 @@ void handler( void* addr, rw_val_t rw, size_t width, uint64_t val ) {
 }
 
 int main( void ) {
-	void* dev_info[][3] = { { (void*)0xfe000000, (void*)0xfe100000, handler } };
+	void* dev_info[][3] = { { (void*)0xfe000000, (void*)0xfe100000, dev_handler } };
 	const size_t n_dev = sizeof( dev_info ) / sizeof( dev_info[0] );
 
 	setup_handler( n_dev, dev_info );
@@ -37,7 +39,9 @@ int main( void ) {
 	*(volatile uint64_t*)0xfe000000 = 0;
 	*(volatile uint64_t*)0xfe000000 = y;
 
-	_memcpy( (void*)0xfe000000, (void*)0xfe000100, 2 );
+	_memcpy( 0xfe000000, 0xfe000100, 2 );
+	_add( 0xfe000000, 1 );
+	push_pop_test( 0xfe100000 );
 
 	return 0;
 }

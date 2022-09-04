@@ -47,11 +47,9 @@ static int dev_addr( void* addr, void* bounds[] ) {
 }
 
 typedef struct {
-	struct {
-		uint32_t read : 1;
-		uint32_t write : 1;
-		uint32_t fetch : 1;
-	} rwf;
+	uint32_t read : 1;
+	uint32_t write : 1;
+	uint32_t fetch : 1;
 	uint32_t width;
 	size_t val;
 	void* dst;
@@ -63,18 +61,18 @@ static void access_fault_info( ZydisDecodedInstruction* inst,
                                fault_type_t* ret ) {
 	(void)ctx;
 	ret->width = 0;
-	ret->rwf.read = 0;
-	ret->rwf.write = 0;
-	ret->rwf.fetch = 0;
+	ret->read = 0;
+	ret->write = 0;
+	ret->fetch = 0;
 	for ( ZyanU8 i = 0; i < inst->operand_count; i++ ) {
 		if ( ops[i].type == ZYDIS_OPERAND_TYPE_MEMORY ) {
 			if ( ret->width != 0 ) assert( ret->width == ops[i].size );
 			ret->width = ops[i].size;
 			if ( ops[i].actions == ZYDIS_OPERAND_ACTION_READ ) {
-				ret->rwf.read = 1;
+				ret->read = 1;
 			}
 			else if ( ops[i].actions == ZYDIS_OPERAND_ACTION_WRITE ) {
-				ret->rwf.write = 1;
+				ret->write = 1;
 			}
 		}
 		else if ( ops[i].type == ZYDIS_OPERAND_TYPE_REGISTER ) {
@@ -112,7 +110,7 @@ static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
 		fault_type_t ft;
 		access_fault_info( &inst, ops, ctx, &ft );
 
-		rw_val_t rw = ft.rwf.read ? READ : WRITE;
+		rw_val_t rw = ft.read ? READ : WRITE;
 
 		for ( size_t i = 0; i < n_dev; i++ ) {
 			if ( dev_addr( mem_addr, dev_info[i] ) ) {
@@ -126,14 +124,25 @@ static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
 	// handle like normal memory
 	else {
 		// TODO
+		fprintf( stderr,
+		         "Segfault occurred at 0x%lx trying to access 0x%lx which is not handled by dev handlers\n",
+		         (uintptr_t)fault_addr,
+		         (uintptr_t)mem_addr );
+		abort();
 	}
 }
 
 void setup_handler( size_t n, void* device_info[][3] ) {
+	stack_t ss;
+	ss.ss_sp = malloc( 2 * SIGSTKSZ );
+	ss.ss_size = 2 * SIGSTKSZ;
+	ss.ss_flags = 0;
+	sigaltstack( &ss, NULL );
+
 	struct sigaction act;
 	sigemptyset( &act.sa_mask );
 	act.sa_sigaction = (void ( * )( int, siginfo_t*, void* ))handler;
-	act.sa_flags = SA_SIGINFO;
+	act.sa_flags = SA_SIGINFO | SA_ONSTACK;
 	sigaction( SIGSEGV, &act, NULL );
 
 	// malloc main array

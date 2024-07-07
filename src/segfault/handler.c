@@ -104,8 +104,7 @@ static void handler( int sig, siginfo_t* info, ucontext_t* ctx ) {
 		// get info about instruction that faulted
 		ZydisDecodedInstruction inst;
 		ZydisDecodedOperand ops[ZYDIS_MAX_OPERAND_COUNT];
-		ZydisDecoderDecodeFull(
-		  &dec, fault_addr, ZYDIS_MAX_INSTRUCTION_LENGTH, &inst, ops, ZYDIS_MAX_OPERAND_COUNT, 0 );
+		ZydisDecoderDecodeFull( &dec, fault_addr, ZYDIS_MAX_INSTRUCTION_LENGTH, &inst, ops );
 
 		fault_type_t ft;
 		access_fault_info( &inst, ops, ctx, &ft );
